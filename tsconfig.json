@@ -7,5 +7,5 @@
     "esModuleInterop": true
   },
   "exclude": ["node_modules"],
-  "include": ["./*"]
+  "include": ["./*", "config/config.ts", "utils/openai.ts"]
 }
