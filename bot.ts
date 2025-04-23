@@ -1,6 +1,6 @@
 import { getChatGPTResponse } from "./utils/openai";
 import fs from "fs";
-import { createExcelFile } from "./utils/createExelFile";
+import { updateOrCreateUserInExcel } from "./utils/createExelFile";
 
 //Импортируем библиотеку для создания бота
 import { Telegraf } from "telegraf";
@@ -8,6 +8,7 @@ import { Telegraf } from "telegraf";
 // Стартовое сообщения после сообщения /start
 import { START_MESSAGE } from "./config/config";
 import dotenv from "dotenv";
+import path from "path";
 
 dotenv.config();
 
@@ -19,31 +20,44 @@ export const initTelegramBot = () => {
   //Функция для отправки стартового сообщения
   bot.start((ctx) => ctx.reply(START_MESSAGE));
 
+  bot.command("excel", async (ctx) => {
+    const filePath = path.join("files", "generated_file.xlsx");
+
+    if (!fs.existsSync(filePath)) {
+      return ctx.reply(
+        "Файл Excel еще не создан. Сначала отправьте любое сообщение, чтобы он появился."
+      );
+    }
+
+    await ctx.replyWithDocument({
+      source: fs.createReadStream(filePath),
+      filename: "generated_file.xlsx",
+    });
+  });
+
   //Функция для получения сообщения от пользователя и отправки сообщения от исскуственного интелекта
   bot.on("text", async (ctx: any) => {
-    console.log("Получено сообщение от пользователя:", ctx.message);
-
     //Сообщение пользователя
     const userMessage = ctx.message.text;
+
+    if (userMessage.startsWith("/")) return;
+
+    const user = ctx.message.from;
+
+    const userData = {
+      id: user.id,
+      name: `${user.first_name} ${user.last_name || ""}`.trim(),
+      login: user.username || `user_${user.id}`,
+      time: new Date().toLocaleString(),
+    };
+
+    await updateOrCreateUserInExcel(userData);
 
     //Отправляем запрос с данным сообщением исскуственному интелекту
     const result = await getChatGPTResponse(userMessage);
 
     //Отправляем сообщение исскуственного интелекта обратно пользователю
     await ctx.reply(result);
-
-    await ctx.replyWithDocument({
-      source: "./files/a42f4ace-b913-4f90-ba63-98250dd0c281_gold_statement.pdf",
-    });
-  });
-
-  bot.command("excel", async (ctx) => {
-    const filePath = await createExcelFile();
-
-    await ctx.replyWithDocument({
-      source: fs.createReadStream(filePath),
-      filename: "generated_file.xlsx",
-    });
   });
 
   //Запуск бота
