@@ -20,7 +20,7 @@ export const initTelegramBot = () => {
   //Функция для отправки стартового сообщения
   bot.start((ctx) => ctx.reply(START_MESSAGE));
 
-  bot.command("excel", async (ctx) => {
+  bot.command("getActiveUsers", async (ctx) => {
     const filePath = path.join("files", "generated_file.xlsx");
 
     if (!fs.existsSync(filePath)) {

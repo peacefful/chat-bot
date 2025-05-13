@@ -32,9 +32,6 @@ export const getChatGPTResponse = async (message: string): Promise<string> => {
       // Ограничение на количество токенов (слов и символов), которые модель может сгенерировать в ответе.
     });
 
-    console.log(response.choices[0].message);
-    // Логирует первый ответ, сгенерированный моделью, для отладки.
-
     return response.choices[0]?.message.content || "Ошибка: пустой ответ.";
     // Возвращает содержимое ответа, если оно есть. Если ответа нет (или пусто), возвращает сообщение об ошибке.
   } catch (error) {

@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import fs from "fs";
 import path from "path";
+import { createUser } from "../api/createUser";
 
 const filePath = path.join("files", "generated_file.xlsx");
 
@@ -8,7 +9,6 @@ export const updateOrCreateUserInExcel = async (user: {
   id: number;
   name: string;
   login: string;
-  time: string;
 }) => {
   try {
     const workbook = new ExcelJS.Workbook();
@@ -23,46 +23,53 @@ export const updateOrCreateUserInExcel = async (user: {
     if (fileExists) {
       await workbook.xlsx.readFile(filePath);
       worksheet = workbook.getWorksheet("Example");
-
       if (!worksheet) {
         worksheet = workbook.addWorksheet("Example");
       }
-
-      // ✅ Всегда устанавливаем columns
-      worksheet.columns = [
-        { header: "ID", key: "id" },
-        { header: "Name", key: "name" },
-        { header: "Login", key: "login" },
-        { header: "Time", key: "time" },
-      ];
     } else {
       worksheet = workbook.addWorksheet("Example");
-      worksheet.columns = [
-        { header: "ID", key: "id" },
-        { header: "Name", key: "name" },
-        { header: "Login", key: "login" },
-        { header: "Time", key: "time" },
-      ];
     }
 
-    // Поиск по логину
-    const LOGIN_COL = 3;
+    worksheet.columns = [
+      { header: "ID", key: "id" },
+      { header: "Name", key: "name" },
+      { header: "Login", key: "login" },
+      { header: "Time", key: "time" },
+    ];
+
+    // Формируем дату и время в формате YYYY-MM-DD HH:mm
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const formattedDateTime = `${now.getFullYear()}-${pad(
+      now.getMonth() + 1
+    )}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
     let found = false;
 
     worksheet.eachRow({ includeEmpty: false }, (row) => {
-      const loginCell = row.getCell(3).value; // 🔧 Номер столбца с login
+      const loginCell = row.getCell(3).value;
       if (loginCell === user.login) {
-        row.getCell(2).value = user.name; // Name
-        row.getCell(4).value = user.time; // Time
+        row.getCell(4).value = formattedDateTime;
         found = true;
       }
     });
 
     if (!found) {
-      worksheet.addRow(user);
-      await workbook.xlsx.writeFile(filePath); // Сохраняем только если был добавлен
+      worksheet.addRow({
+        ...user,
+        time: formattedDateTime,
+      });
     }
 
+    const currentUser = {
+      id: user.id.toString(),
+      name: user.name,
+      login: user.login,
+      time: formattedDateTime,
+    };
+
+    await createUser(currentUser);
+    await workbook.xlsx.writeFile(filePath);
     return filePath;
   } catch (error) {
     console.error("Error updating Excel:", error);
