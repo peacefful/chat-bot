@@ -49,15 +49,16 @@ export const initTelegramBot = () => {
       name: `${user.first_name} ${user.last_name || ""}`.trim(),
       login: user.username || `user_${user.id}`,
       time: new Date().toLocaleString(),
+      quetion: userMessage,
     };
 
     await updateOrCreateUserInExcel(userData);
 
     //Отправляем запрос с данным сообщением исскуственному интелекту
-    const result = await getChatGPTResponse(userMessage);
+    // const result = await getChatGPTResponse(userMessage);
 
     //Отправляем сообщение исскуственного интелекта обратно пользователю
-    await ctx.reply(result);
+    await ctx.reply(userMessage);
   });
 
   //Запуск бота

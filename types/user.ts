@@ -4,3 +4,8 @@ export type TUser = {
   login: string;
   time: string;
 };
+
+export type TUniqueUser = {
+  quetion?: string;
+  region?: string | null;
+} & TUser;

@@ -1,41 +1,30 @@
-import ExcelJS from "exceljs";
-import fs from "fs";
-import path from "path";
 import { createUser } from "../api/createUser";
-
-const filePath = path.join("files", "generated_file.xlsx");
+import { createUniqueUser } from "../api/createUniqueUser";
+import { getUserCountry } from "../api/getCountryUser";
+import { TUniqueUser } from "../types/user";
+import { getUniqueUsers } from "../api/getUniqueUsers";
+import { updateUniqueUser } from "../api/updateUser";
 
 export const updateOrCreateUserInExcel = async (user: {
   id: number;
   name: string;
   login: string;
+  quetion: string;
 }) => {
   try {
-    const workbook = new ExcelJS.Workbook();
-    let worksheet;
+    let found = false;
+    let currentUserId = "";
 
-    const dirPath = path.dirname(filePath);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
+    await getUniqueUsers().then(async (users) => {
+      const currentUser = users?.find((userItem) => {
+        return userItem.login === user.login;
+      });
 
-    const fileExists = fs.existsSync(filePath);
-    if (fileExists) {
-      await workbook.xlsx.readFile(filePath);
-      worksheet = workbook.getWorksheet("Example");
-      if (!worksheet) {
-        worksheet = workbook.addWorksheet("Example");
+      if (currentUser) {
+        found = true;
+        currentUserId = currentUser.$id;
       }
-    } else {
-      worksheet = workbook.addWorksheet("Example");
-    }
-
-    worksheet.columns = [
-      { header: "ID", key: "id" },
-      { header: "Name", key: "name" },
-      { header: "Login", key: "login" },
-      { header: "Time", key: "time" },
-    ];
+    });
 
     // Формируем дату и время в формате YYYY-MM-DD HH:mm
     const now = new Date();
@@ -44,33 +33,30 @@ export const updateOrCreateUserInExcel = async (user: {
       now.getMonth() + 1
     )}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
-    let found = false;
-
-    worksheet.eachRow({ includeEmpty: false }, (row) => {
-      const loginCell = row.getCell(3).value;
-      if (loginCell === user.login) {
-        row.getCell(4).value = formattedDateTime;
-        found = true;
-      }
-    });
-
-    if (!found) {
-      worksheet.addRow({
-        ...user,
-        time: formattedDateTime,
-      });
-    }
-
-    const currentUser = {
+    const currentUser: TUniqueUser = {
       id: user.id.toString(),
       name: user.name,
       login: user.login,
       time: formattedDateTime,
     };
 
+    if (!found) {
+      await getUserCountry().then(async (region: string | null) => {
+        currentUser.region = region;
+        currentUser.quetion = user.quetion;
+
+        await createUniqueUser(currentUser);
+      });
+    } else {
+      await getUserCountry().then(async (region: string | null) => {
+        currentUser.region = region;
+        currentUser.quetion = user.quetion;
+
+        await updateUniqueUser(currentUserId, currentUser);
+      });
+    }
+
     await createUser(currentUser);
-    await workbook.xlsx.writeFile(filePath);
-    return filePath;
   } catch (error) {
     console.error("Error updating Excel:", error);
     throw error;

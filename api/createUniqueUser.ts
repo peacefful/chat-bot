@@ -1,12 +1,12 @@
 import { database } from "../appwrite";
 import { ID } from "appwrite";
-import { type TUser } from "../types/user";
+import { type TUniqueUser } from "../types/user";
 
-export const createUser = async (user: TUser) => {
+export const createUniqueUser = async (user: TUniqueUser) => {
   try {
     await database.createDocument(
       process.env.APPWRITER_DATE_BASE_ID || "",
-      process.env.APPWRITER_COLLECTION_ID || "",
+      process.env.APPWRITER_COLLECTION_ACTIVE_USERS_ID || "",
       ID.unique(),
       { ...user }
     );
