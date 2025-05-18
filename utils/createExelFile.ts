@@ -40,6 +40,8 @@ export const updateOrCreateUserInExcel = async (user: {
       time: formattedDateTime,
     };
 
+    await createUser(currentUser);
+
     if (!found) {
       await getUserCountry().then(async (region: string | null) => {
         currentUser.region = region;
@@ -56,7 +58,7 @@ export const updateOrCreateUserInExcel = async (user: {
       });
     }
 
-    await createUser(currentUser);
+    
   } catch (error) {
     console.error("Error updating Excel:", error);
     throw error;
